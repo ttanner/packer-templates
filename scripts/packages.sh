@@ -8,7 +8,7 @@ test "$PACKER_BUILDER_TYPE" = virtualbox-iso && deb_dkms="binutils cpp cpp-5 dkm
   libatomic1 libcc1-0 libcilkrts5 libgcc-5-dev libgomp1 libisl15 libitm1 liblsan0 libmpc3 libmpfr4 libmpx0
   libquadmath0 libtsan0 libubsan0"
 purge="accountsservice apparmor crda dmidecode dosfstools friendly-recovery
-  fuse gir1.2-glib-2.0 hdparm installation-report isc-dhcp-client iw language-selector-common libaccountsservice0
+  fuse gir1.2-glib-2.0 hdparm installation-report iw language-selector-common libaccountsservice0
   libapparmor-perl libatm1 libdrm2 libelf1 libfribidi0 libnl-3-200 libnl-genl-3-200
   libdbus-glib-1-2 libgirepository-1.0-1 libpcap0.8 libplymouth4 libpolkit-gobject-1-0 libusb-1.0-0 libxau6
   libparted2 libpci3 libx11-6 libx11-data libxcb1 libxdmcp6 libxext6
@@ -34,6 +34,9 @@ test "$docker" = true && extra="$extra_pkgs docker"
 test -n "$extra_pkgs" && apt-get install -y $extra_pkgs
 test -n "$purge_pkgs" && apt-get purge -y $purge_pkgs
 apt-get autoremove -y #linux-headers-4.4.0-36
+
+# disable rev lookups
+echo "UseDNS no" >> /etc/ssh/sshd_config
 
 # pack package cache
 cd /var/cache/apt/archives/
