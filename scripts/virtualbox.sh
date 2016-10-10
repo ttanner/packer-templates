@@ -1,6 +1,7 @@
-#!/bin/sh -x
+#!/bin/sh -e
 
 export DEBIAN_FRONTEND=noninteractive
+. config.vm
 # The netboot installs the VirtualBox support (old) so we have to remove it
 rmmod vboxvideo vboxguest || true
 apt-get install -y dkms
@@ -15,7 +16,9 @@ umount /mnt
 #Cleanup VirtualBox
 rm $VBOX_ISO
 
-test -n "$kupgrade" || rm -rf /usr/src/vboxguest-*
+test "$kupgrade" = true || rm -rf /usr/src/vboxguest-*
 
 #shutdown -r now
 #sleep 60
+exit 0
+

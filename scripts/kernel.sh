@@ -1,22 +1,43 @@
 #!/bin/sh
 
 export DEBIAN_FRONTEND=noninteractive
-source config.vm
-#apt-get clean
-
-test -n "$http_proxy" && echo "Acquire::http::Proxy \"$http_proxy\";" >> /etc/apt/apt.conf.d/30proxy
-test -n "$ftp_proxy" && echo "Acquire::ftp::Proxy \"$ftp_proxy\";" >> /etc/apt/apt.conf.d/30proxy
-
-touch /etc/profile.d/proxy.sh
-test -n "$http_proxy" && echo "export http_proxy=\"$http_proxy\"" >> /etc/profile.d/proxy.sh
-test -n "$https_proxy" && echo "export https_proxy=\"$https_proxy\"" >> /etc/profile.d/proxy.sh
-test -n "$ftp_proxy" && echo "export ftp_proxy=\"$ftp_proxy\"" >> /etc/profile.d/proxy.sh
-test -n "$no_proxy" && echo "export no_proxy=\"$no_proxy\"" >> /etc/profile.d/proxy.sh
+. config.vm
 
 test "$i386" = true || dpkg --remove-architecture i386
 
+# select mirror
+if test "$mirror" = auto; then
+  mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
+  if test -z "$http_proxy"; then
+    wget http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28_amd64.deb # netselect-apt_0.3.ds1-28_all.deb
+    dpkg -i netselect_0.3.ds1-28_amd64.deb
+    rm netselect_0.3.ds1-28_amd64.deb
+    mirrors=`wget -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
+    fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
+    test -n "$fmirror" && mirror=$fmirror
+  fi
+fi
+echo "using mirror $mirror"
+cat > /etc/apt/sources.list <<EOF
+deb $mirror xenial main restricted universe multiverse
+# deb-src $mirror xenial main restricted multiverse
+
+deb $mirror xenial-updates main restricted universe multiverse
+# deb-src $mirror xenial-updates main restricted universe multiverse
+
+deb http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+# deb-src http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+
+deb $mirror xenial-backports main restricted universe multiverse
+# deb-src $mirror xenial-backports main restricted universe multiverse
+
+# deb http://archive.canonical.com/ubuntu xenial partner
+# deb-src http://archive.canonical.com/ubuntu xenial partner
+EOF
+
 # update apt sources
 apt-get update
+
 # move cached packages to destination
 mv /tmp/aptcache/* /var/cache/apt/archives
 
@@ -29,16 +50,25 @@ apt-get install -y linux-generic linux-image-generic #zerofree
 
 rm -rf /lib/modules/*-generic/kernel/ubuntu/vbox
 
-test -n "$kupgrade" || deb_linux_generic="linux-headers-generic linux-image-generic"
+test "$kupgrade" = true || deb_linux_generic="linux-headers-generic linux-image-generic"
 
 apt-get purge -y plymouth-theme-ubuntu-text \
  linux-image-4.4.0-31-generic linux-image-extra-4.4.0-31-generic \
  linux-headers-4.4.0-31 linux-headers-4.4.0-31-generic $deb_linux_generic
 
+test "$x11" = true && apt-get install -y xserver-xorg-core # required for virtualbox x11 install
+
 # do not clear the boot console
 mkdir /etc/systemd/system/getty@tty1.service.d
 echo -e "[Service]\nTTYVTDisallocate=no" > /etc/systemd/system/getty@tty1.service.d/noclear.conf
 
+# disable rev lookups
+echo "UseDNS no" >> /etc/ssh/sshd_config
+
 # Reboot with the new kernel
 shutdown -r now
-sleep 60
+sleep 5
+sync
+reboot -f # in case it hangs
+exit 0
+

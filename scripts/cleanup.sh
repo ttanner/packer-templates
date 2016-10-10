@@ -1,4 +1,5 @@
-#!/bin/sh -x
+#!/bin/sh -e
+
 apt-get clean
 rm -f /tmp/aptcache.tar
 
@@ -17,3 +18,5 @@ else
   # mount -o ro,remount /
   # zerofree -v /dev/sda1
 fi
+exit 0
+

@@ -20,7 +20,7 @@
     "iso_path_external": "http://releases.ubuntu.com/16.04.1",
     "iso_path_internal": "http://localhost/ubuntu",
     "country": "US",
-    "mirror_country": "DE",
+    "mirror": "auto",
     "keyboard": "us",
     "language": "en",
     "locale": "en_US.UTF-8",
@@ -45,7 +45,7 @@
     "ssh_username": "vagrant",
     "ssh_password": "vagrant",
     "ssh_port": "22",
-    "ssh_pty": "false",
+    "ssh_pty": "true",
     "ssh_timeout": "20m",
     "vagrantfile_template": "1604.vagrant",
     "version": "0.0.0",
@@ -63,8 +63,10 @@
     "with_docker": "false",
     "with_kupgrade": "false",
     "with_i386": "false",
+    "with_x11": "false",
+    "with_ppas": "",
     "with_pkgs": "",
-	"partitioning": "onlyroot",
+    "partitioning": "onlyroot",
     "without_pkgs": ""
   },
   "builders": [
@@ -95,7 +97,6 @@
         "passwd/user-fullname={{user `ssh_username`}} ",
         "passwd/user-password-again={{user `ssh_password`}} ",
         "passwd/user-password={{user `ssh_password`}} ",
-        "mirror/country={{user `mirror_country`}} ",
         "pkgsel/include=\"openssh-server nfs-common libdbus-1-3 gcc make patch\" ",
         "partman-auto/choose_recipe={{user `partitioning`}} ",
         " --<enter>"
@@ -149,7 +150,7 @@
       "vboxmanage_post": [
         ["modifyvm", "{{.Name}}", "--memory", "{{user `memory`}}"],
         ["modifyvm", "{{.Name}}", "--cpus", "{{user `cpu_cores`}}"]
-      ]
+      ],
       "virtualbox_version_file": ".vbox_version",
       "vm_name": "{{user `vm_name`}}"
     },
@@ -180,7 +181,6 @@
         "passwd/user-fullname={{user `ssh_username`}} ",
         "passwd/user-password-again={{user `ssh_password`}} ",
         "passwd/user-password={{user `ssh_password`}} ",
-        "mirror/country={{user `mirror_country`}} ",
         "pkgsel/include=\"openssh-server nfs-common\" ",
         "partman-auto/choose_recipe={{user `partitioning`}} ",
         " --<enter>"
@@ -252,7 +252,6 @@
         "passwd/user-fullname={{user `ssh_username`}} ",
         "passwd/user-password-again={{user `ssh_password`}} ",
         "passwd/user-password={{user `ssh_password`}} ",
-        "mirror/country={{user `mirror_country`}} ",
         "pkgsel/include=\"openssh-server nfs-common\" ",
         "partman-auto/choose_recipe={{user `partitioning`}} ",
         " --<enter>"
@@ -283,12 +282,8 @@
       "output_directory": "{{user `output_directory`}}",
       "qemu_binary": "{{user `qemu_binary`}}",
       "qemuargs": [
-        [
-          "-m", "{{user `memory`}}M"
-        ],
-        [
-          "-smp", "{{user `cpu_cores`}}"
-        ]
+        ["-m", "{{user `memory`}}M"],
+        ["-smp", "{{user `cpu_cores`}}"]
       ],
       "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -E -S poweroff",
       "shutdown_timeout": "{{user `shutdown_timeout`}}",
@@ -336,18 +331,18 @@
   "min_packer_version": "0.10.1",
   "post-processors": [
     {
-      "compression_level": 6,
-      "keep_input_artifact": false,
+      "compression_level": 9,
+      "keep_input_artifact": true,
       "only": [
         "virtualbox",
         "qemu"
       ],
-      "output": "{{user `output_directory`}}/{{user `vm_name`}}-{{user `version`}}-{{.Provider}}.box",
+      "output": "{{user `vm_name`}}-{{user `version`}}-{{.Provider}}.box",
       "type": "vagrant",
       "vagrantfile_template": "{{user `vagrantfile_template`}}"
     },
     {
-      "compression_level": 6,
+      "compression_level": 9,
       "keep_input_artifact": true,
       "only": [
         "qemu"
@@ -359,63 +354,65 @@
   "provisioners": [
     {
       "inline": [
-		"echo http_proxy={{user `http_proxy`}} >> config.vm",
-		"echo https_proxy={{user `https_proxy`}} >> config.vm",
-		"echo ftp_proxy={{user `ftp_proxy`}} >> config.vm",
-		"echo no_proxy={{user `no_proxy`}} >> config.vm",
-		"echo kupgrade={{user `with_kupgrade`}} >> config.vm",
-		"echo i386={{user `with_i386`}} >> config.vm",
-		"echo ansible={{user `with_ansible`}} >> config.vm",
-		"echo salt={{user `with_salt`}} >> config.vm",
-		"echo chef={{user `with_chef`}} >> config.vm",
-		"echo puppet={{user `with_puppet`}} >> config.vm",
-		"echo docker={{user `with_docker`}} >> config.vm",
-		"echo extra_pkgs={{user `with_pkgs`}} >> config.vm",
-		"echo purge_pkgs={{user `without_pkgs`}} >> config.vm"
-		],
+        "echo http_proxy={{user `http_proxy`}} >> config.vm",
+        "echo https_proxy={{user `https_proxy`}} >> config.vm",
+        "echo ftp_proxy={{user `ftp_proxy`}} >> config.vm",
+        "echo no_proxy={{user `no_proxy`}} >> config.vm",
+        "echo mirror={{user `mirror`}} >> config.vm",
+        "echo kupgrade={{user `with_kupgrade`}} >> config.vm",
+        "echo i386={{user `with_i386`}} >> config.vm",
+        "echo x11={{user `with_x11`}} >> config.vm",
+        "echo ansible={{user `with_ansible`}} >> config.vm",
+        "echo salt={{user `with_salt`}} >> config.vm",
+        "echo chef={{user `with_chef`}} >> config.vm",
+        "echo puppet={{user `with_puppet`}} >> config.vm",
+        "echo docker={{user `with_docker`}} >> config.vm",
+        "echo ppas={{user `with_ppas`}} >> config.vm",
+        "echo extra_pkgs={{user `with_pkgs`}} >> config.vm",
+        "echo purge_pkgs={{user `without_pkgs`}} >> config.vm"
+        ],
       "type": "shell"
     },
     {
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
-      "script": "scripts/vagrant.sh",
-      "type": "shell"
+      "type": "file",
+      "source": "aptcache",
+      "destination": "/tmp",
+      "direction": "upload"
     },
-	{
-	  "type": "file",
-	  "source": "aptcache",
-	  "destination": "/tmp",
-	  "direction": "upload"
-	},
     {
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
-      "script": "scripts/kernel.sh",
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
+      "scripts": [
+        "scripts/proxy.sh",
+        "scripts/vagrant.sh",
+        "scripts/kernel.sh"
+      ],
       "type": "shell"
     },
     {
       "only": ["vmware"],
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
       "script": "scripts/vmware.sh",
       "type": "shell"
     },
     {
       "only": ["virtualbox"],
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
       "script": "scripts/virtualbox.sh",
       "type": "shell"
     },
     {
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
       "script": "scripts/packages.sh",
       "type": "shell"
     },
-	{
-	  "type": "file",
-	  "source": "/tmp/aptcache.tar",
-	  "destination": "aptcache.tar",
-	  "direction": "download"
-	},
     {
-      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "type": "file",
+      "source": "/tmp/aptcache.tar",
+      "destination": "aptcache.tar",
+      "direction": "download"
+    },
+    {
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
       "script": "scripts/cleanup.sh",
       "type": "shell"
     }
