@@ -52,6 +52,7 @@
     "vm_name": "mini1604",
     "vnc_port_max": "6000",
     "vnc_port_min": "5900",
+    "vbox_hostif": "vboxnet0",
     "http_proxy": "{{env `http_proxy`}}",
     "https_proxy": "{{env `https_proxy`}}",
     "ftp_proxy": "{{env `ftp_proxy`}}",
@@ -145,7 +146,7 @@
         ["modifyvm", "{{.Name}}", "--nictype1", "virtio"],
         ["modifyvm", "{{.Name}}", "--nic2", "hostonly"],
         ["modifyvm", "{{.Name}}", "--nictype2", "virtio"],
-        ["modifyvm", "{{.Name}}", "--hostonlyadapter2", "vboxnet0"]
+        ["modifyvm", "{{.Name}}", "--hostonlyadapter2", "{{user `vbox_hostif`}}"]
       ],
       "vboxmanage_post": [
         ["modifyvm", "{{.Name}}", "--memory", "{{user `memory`}}"],
