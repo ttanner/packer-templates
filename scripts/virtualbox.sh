@@ -4,9 +4,13 @@ export DEBIAN_FRONTEND=noninteractive
 . config.vm
 # The netboot installs the VirtualBox support (old) so we have to remove it
 rmmod vboxvideo vboxguest || true
-apt-get install -y dkms
+if test "$offline" = false; then
+  apt-get install -y dkms
+else
+  dpkg -i /var/cache/apt/archives/dkms_2.2.0.3-2ubuntu11.3_all.deb
+fi
 
-# Install the VirtualBox guest additions
+echo Installing the VirtualBox guest additions
 VBOX_VERSION=$(cat .vbox_version)
 VBOX_ISO=VBoxGuestAdditions.iso
 mount -o loop $VBOX_ISO /mnt
@@ -21,4 +25,3 @@ test "$kupgrade" = true || rm -rf /usr/src/vboxguest-*
 #shutdown -r now
 #sleep 60
 exit 0
-
