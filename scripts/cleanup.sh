@@ -18,5 +18,6 @@ else
   # mount -o ro,remount /
   # zerofree -v /dev/sda1
 fi
+df -h
 exit 0
 

@@ -1,7 +1,7 @@
 Packer template for minimalistic and flexible VMs
 =================================================
 
-(currently only Ubuntu 16.04.1 Xenial is supported)
+(currently only Ubuntu 16.04.2 Xenial is supported)
 The template can generate virtualbox, vmware and qemu/kvm images or vagrant boxes.
 Requires Packer 0.11 or higher.
 
@@ -37,6 +37,7 @@ The most relevant variables (defaults in brackets) are:
 *   `offline` (false): pure offline installation - should not rely on downloads but only on cache
 *   `with_kupgrade` (false):
     whether to keep generic kernel packages, headers, and VM guest sources for for automatic kernel upgrades.
+*   `with_hwe' (true): whether to use the HWE stack for kernel and X11
 *   `with_x11` (false): whether to install the core X11 server with VM guest support. conflicts with `offline`.
 *   `with_i386` (false): whether to keep i386 packages
 *   `with_qt` (false): whether to install Qt 5.7.1 PPA

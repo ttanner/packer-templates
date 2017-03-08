@@ -25,14 +25,21 @@ mv /tmp/aptcache/* /var/cache/apt/archives
 if test "$mirror" = auto; then
   mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
   if test -z "$http_proxy" -a "$offline" = false; then
-    netselect=/var/cache/apt/archives/netselect_0.3.ds1-28_amd64.deb
+    # get current netselect - version/link may be broken
+    nsversion=0.3.ds1-28+b1
+    netselect=/var/cache/apt/archives/netselect_${nsversion}_amd64.deb
     if test ! -f $netselect; then
-      wget -O $netselect http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28_amd64.deb # netselect-apt_0.3.ds1-28_all.deb
+      wget -O $netselect http://http.us.debian.org/debian/pool/main/n/netselect/netselect_${nsversion}_amd64.deb
+      # netselect-apt_0.3.ds1-28_all.deb
     fi
-    dpkg -i $netselect
-    mirrors=`wget -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
-    fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
-    test -n "$fmirror" && mirror=$fmirror
+    if test -f $netselect; then
+      dpkg -i $netselect
+      mirrors=`wget -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
+      fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
+      test -n "$fmirror" && mirror=$fmirror
+    else
+      echo "could not download netselect. falling back to mirror list"
+    fi
   fi
 fi
 echo "using mirror $mirror"
@@ -58,15 +65,23 @@ if test "$offline" = false; then
   apt-get update
 
   # Update to the latest kernel
-  apt-get install -y linux-generic linux-image-generic #zerofree
+  stack=
+  test "$hwe" = true && stack=-hwe-16.04
+  apt-get install -y linux-generic$stack #zerofree
 
-  test "$kupgrade" = true || deb_linux_generic="linux-headers-generic linux-image-generic"
+  if test "$kupgrade" = false -o "$hwe" = true; then
+     kernel_purge="linux-headers-generic linux-image-generic"
+  fi 
+  if test "$kupgrade" = false -a "$hwe" = true; then
+     kernel_purge="$kernel_purge linux-headers-generic$stack linux-image-generic$stack"
+  fi
 
+  # remove original kernel
   apt-get purge -y plymouth-theme-ubuntu-text \
-   linux-image-4.4.0-31-generic linux-image-extra-4.4.0-31-generic \
-   linux-headers-4.4.0-31 linux-headers-4.4.0-31-generic $deb_linux_generic
+   linux-image-4.4.0-62-generic linux-image-extra-4.4.0-62-generic \
+   linux-headers-4.4.0-62 linux-headers-4.4.0-62-generic $kernel_purge
 
-  test "$x11" = true && apt-get install -y xserver-xorg-core # required for virtualbox x11 install
+  test "$x11" = true && apt-get install -y xserver-xorg-core$stack # required for virtualbox x11 install
 fi
 
 # Reboot with the new kernel

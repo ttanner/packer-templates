@@ -43,8 +43,8 @@ if test "$salt" = true; then
   extra_pkgs="$extra_pkgs salt-minion salt-ssh"
 fi
 if test "$qt" = true; then
-  ppas="$ppas ppa:beineri/opt-qt571-xenial"
-  extra_pkgs="$extra_pkgs qt57base"
+  ppas="$ppas ppa:beineri/opt-qt58-xenial"
+  extra_pkgs="$extra_pkgs qt58base"
 fi
 for ppa in $ppas; do
   add-apt-repository -y $ppa
@@ -53,7 +53,7 @@ done
 test "$needupdate" = true && apt-get update
 test -n "$extra_pkgs" && apt-get install -y $extra_pkgs
 test -n "$purge_pkgs" && apt-get purge -y $purge_pkgs
-apt-get autoremove -y #linux-headers-4.4.0-36
+apt-get autoremove -y #linux-headers-4.4.0-62
 
 # pack package cache
 cd /var/cache/apt/archives/
