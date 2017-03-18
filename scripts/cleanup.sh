@@ -8,6 +8,7 @@ echo "cleaning up dhcp leases"
 rm -f /var/lib/dhcp/*
 
 if test "$PACKER_BUILDER_TYPE" = virtualbox-iso; then
+  sync
   fstrim -v /
 else
   # Zero out the free space to save space in the final image:
@@ -20,4 +21,3 @@ else
 fi
 df -h
 exit 0
-

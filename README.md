@@ -53,7 +53,9 @@ for the next installation. It will be empty, if you create a file `aptcache/nodo
 
 The disk is called /dev/sda, the first network interface eth0, on Virtualbox the host-only interface eth1.
 
-Disk usage with kupgrade and x11 enabled: 736MB
+Current disk usage and compressed image size:
+minimal (HWE): 550MB/190MB
+with kupgrade,x11,plymouth,mate: 1.6GB/570MB
 
 If want to use TRIM on Virtualbox, you need to re-enable it after importing the OVF:
 in "Manager for virtual media" copy the .vmdk image of your VM to a dynamic .vdi, replace it in the VM settings as the disk

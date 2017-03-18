@@ -5,7 +5,14 @@ export DEBIAN_FRONTEND=noninteractive
 
 test "$i386" = true || dpkg --remove-architecture i386
 
-sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT=""/' -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb noplymouth\"/"  -e 's/GRUB_TIMEOUT=10/GRUB_TIMEOUT=0/' /etc/default/grub
+if test "$plymouth" = true; then
+  sed -i -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb\"/" \
+  -e 's/GRUB_TIMEOUT=10/GRUB_TIMEOUT=0/' /etc/default/grub
+else
+  sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT=""/' \
+  -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb noplymouth\"/" \
+  -e 's/GRUB_TIMEOUT=10/GRUB_TIMEOUT=0/' /etc/default/grub
+fi
 # high res text
 sed -i -e 's/FONTFACE="VGA"/FONTFACE="TerminusBold"/' -e 's/FONTSIZE="8x16"/FONTSIZE="8x14"/' /etc/default/console-setup
 
@@ -84,7 +91,7 @@ if test "$offline" = false; then
   test "$x11" = true && apt-get install -y xserver-xorg-core$stack # required for virtualbox x11 install
 fi
 
-# Reboot with the new kernel
+echo Reboot with the new kernel
 shutdown -r now
 sleep 5
 sync

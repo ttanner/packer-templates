@@ -2,23 +2,33 @@
 
 export DEBIAN_FRONTEND=noninteractive
 . config.vm
+. /etc/profile.d/proxy.sh
 
-test "$kupgrade" = true || deb_kernel="linux-generic linux-headers-$(uname -r) linux-image-extra-$(uname -r)"
-test "$x11" = true || deb_x11="libdrm2 libelf1 libxau6 libx11-6 libx11-data libxcb1 libxdmcp6 libxext6 libxmuu1 xauth"
-test "$PACKER_BUILDER_TYPE" = virtualbox-iso -a "$kupgrade" = false && deb_dkms="binutils cpp cpp-5 dkms gcc gcc-5 libasan2 make patch
-  libatomic1 libcc1-0 libcilkrts5 libgcc-5-dev libgomp1 libisl15 libitm1 liblsan0 libmpc3 libmpfr4 libmpx0
-  libquadmath0 libtsan0 libubsan0"
 purge="accountsservice apparmor crda dmidecode dosfstools friendly-recovery
   fuse hdparm installation-report iw language-selector-common libaccountsservice0
   libapparmor-perl libatm1 libfribidi0 libnl-3-200 libnl-genl-3-200
-  libpcap0.8 libplymouth4 libpolkit-gobject-1-0 libusb-1.0-0
+  libpcap0.8 libpolkit-gobject-1-0 libusb-1.0-0
   libparted2 libpci3 lshw lsof ltrace mlocate netcat-openbsd ntfs-3g
-  parted pciutils plymouth popularity-contest powermgmt-base python3-distupgrade
-  python3-update-manager sgml-base shared-mime-info strace tasksel tasksel-data tcpdump
-  ubuntu-release-upgrader-core update-manager-core usbutils wireless-regdb xml-core
+  parted pciutils popularity-contest powermgmt-base
+  sgml-base shared-mime-info strace tasksel tasksel-data tcpdump
+  usbutils wireless-regdb xml-core
   ubuntu-standard ubuntu-minimal linux-firmware"
+if test "$kupgrade" = false; then
+  purge="$purge linux-generic linux-headers-$(uname -r) linux-image-extra-$(uname -r)
+  python3-distupgrade python3-update-manager ubuntu-release-upgrader-core update-manager-core"
+fi
+if test "$x11" = false; then
+  purge="$purge libelf1 libxau6 libx11-6 libx11-data libxcb1 libxdmcp6 libxext6 libxmuu1 xauth"
+fi
+if test "$PACKER_BUILDER_TYPE" = virtualbox-iso -a "$kupgrade" = false; then
+  purge="$purge binutils cpp cpp-5 dkms gcc gcc-5 libasan2 make patch
+  libatomic1 libcc1-0 libcilkrts5 libgcc-5-dev libgomp1 libisl15 libitm1 liblsan0 libmpc3 libmpfr4 libmpx0
+  libquadmath0 libtsan0 libubsan0"
+fi
 
-apt-get purge -y $purge $deb_kernel $deb_x11 $deb_dkms
+test "$plymouth" = true || purge="$purge libdrm2 libplymouth4 plymouth"
+
+apt-get purge -y $purge
 
 if test "$offline" = true; then
   apt-get autoremove -y
@@ -30,8 +40,24 @@ fi
 apt-get upgrade -y
 apt-get install -y software-properties-common # for add-apt-repository
 
+if test "$plymouth" = true; then
+  extra_pkgs="$extra_pkgs plymouth-theme-ubuntu-mate-logo plymouth-theme-ubuntu-mate-text"
+fi
+if test "$mate" = true; then
+  extra_pkgs="$extra_pkgs apturl avahi-utils caja-gksu caja-open-terminal caja-sendto
+  gnome-settings-daemon-schemas gnome-system-tools gsettings-ubuntu-schemas
+  indicator-application-gtk2 language-selector-gnome lightdm mate-applet-topmenu mate-applets
+  mate-desktop-environment-core mate-gnome-main-menu-applet
+  mate-indicator-applet mate-media mate-menu mate-netspeed
+  mate-sensors-applet-common mate-system-monitor mate-themes mate-tweak
+  mate-utils pinentry-gtk2 pluma
+  session-migration sessioninstaller topmenu-gtk2 topmenu-gtk3
+  xdg-user-dirs-gtk xorg-hwe-16.04 zip
+  fonts-freefont-ttf fonts-liberation ttf-dejavu
+  dmz-cursor-theme mate-media mate-themes ubuntu-mate-artwork ubuntu-mate-lightdm-theme"
+fi
 if test "$llvm" = true; then
-  echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main" > /etc/apt/sources.list.d/llvm.list
+  echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" > /etc/apt/sources.list.d/llvm.list
   wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
   needupdate=true
   extra_pkgs="$extra_pkgs clang-4.0"
@@ -54,6 +80,15 @@ test "$needupdate" = true && apt-get update
 test -n "$extra_pkgs" && apt-get install -y $extra_pkgs
 test -n "$purge_pkgs" && apt-get purge -y $purge_pkgs
 apt-get autoremove -y #linux-headers-4.4.0-62
+
+if test "$mate" = true; then
+  cat > /etc/lightdm/lightdm.conf.d/autologin.conf <<EOF
+[Seat:*]
+autologin-guest=false
+autologin-user=$SUDO_USER
+autologin-user-timeout=0
+EOF
+fi
 
 # pack package cache
 cd /var/cache/apt/archives/
