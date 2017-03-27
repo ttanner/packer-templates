@@ -6,12 +6,12 @@ export DEBIAN_FRONTEND=noninteractive
 test "$i386" = true || dpkg --remove-architecture i386
 
 if test "$plymouth" = true; then
-  sed -i -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb\"/" \
-  -e 's/GRUB_TIMEOUT=10/GRUB_TIMEOUT=0/' /etc/default/grub
+  sed -i -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb quiet\"/" \
+  /etc/default/grub
 else
   sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT=""/' \
   -e "s/GRUB_CMDLINE_LINUX=\"net.ifnames=0 nousb noplymouth\"/GRUB_CMDLINE_LINUX=\"vga=$vga net.ifnames=0 nousb noplymouth\"/" \
-  -e 's/GRUB_TIMEOUT=10/GRUB_TIMEOUT=0/' /etc/default/grub
+  /etc/default/grub
 fi
 # high res text
 sed -i -e 's/FONTFACE="VGA"/FONTFACE="TerminusBold"/' -e 's/FONTSIZE="8x16"/FONTSIZE="8x14"/' /etc/default/console-setup
@@ -25,8 +25,15 @@ echo -e "[Service]\nTTYVTDisallocate=no" > /etc/systemd/system/getty@tty1.servic
 # disable rev lookups
 echo "UseDNS no" >> /etc/ssh/sshd_config
 
+#if test "$PACKER_BUILDER_TYPE" = virtualbox-iso; then
+#  # add TRIM support for / in virtualbox - CAUSES DISK ERRORS - use fstrim
+#  sed -i "s/remount-ro/remount-ro,discard/" /etc/fstab
+#fi
+
 # move cached packages to destination
 mv /tmp/aptcache/* /var/cache/apt/archives
+
+release=`lsb_release -cs`
 
 # select mirror
 if test "$mirror" = auto; then
@@ -41,9 +48,10 @@ if test "$mirror" = auto; then
     fi
     if test -f $netselect; then
       dpkg -i $netselect
-      mirrors=`wget -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
+      mirrors=`wget --no-check-certificate -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
       fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
       test -n "$fmirror" && mirror=$fmirror
+      dpkg --purge netselect
     else
       echo "could not download netselect. falling back to mirror list"
     fi
@@ -51,49 +59,61 @@ if test "$mirror" = auto; then
 fi
 echo "using mirror $mirror"
 cat > /etc/apt/sources.list <<EOF
-deb $mirror xenial main restricted universe multiverse
-# deb-src $mirror xenial main restricted multiverse
+deb $mirror $release main restricted universe multiverse
+# deb-src $mirror $release main restricted multiverse
 
-deb $mirror xenial-updates main restricted universe multiverse
-# deb-src $mirror xenial-updates main restricted universe multiverse
+deb $mirror $release-updates main restricted universe multiverse
+# deb-src $mirror $release-updates main restricted universe multiverse
 
-deb http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
-# deb-src http://security.ubuntu.com/ubuntu xenial-security main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu $release-security main restricted universe multiverse
+# deb-src http://security.ubuntu.com/ubuntu $release-security main restricted universe multiverse
 
-deb $mirror xenial-backports main restricted universe multiverse
-# deb-src $mirror xenial-backports main restricted universe multiverse
+deb $mirror $release-backports main restricted universe multiverse
+# deb-src $mirror $release-backports main restricted universe multiverse
 
-# deb http://archive.canonical.com/ubuntu xenial partner
-# deb-src http://archive.canonical.com/ubuntu xenial partner
+# deb http://archive.canonical.com/ubuntu $release partner
+# deb-src http://archive.canonical.com/ubuntu $release partner
 EOF
+
+test "$release" != "xenial" && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list
 
 if test "$offline" = false; then
   # update apt sources
   apt-get update
 
-  # Update to the latest kernel
+  # Update to the latest kernel and definitely delete the original kernel.
+  # Use generic packages as we don't know the current version.
   stack=
   test "$hwe" = true && stack=-hwe-16.04
-  apt-get install -y linux-generic$stack #zerofree
+  if test "$PACKER_BUILDER_TYPE" = virtualbox-iso; then
+    extra_install=linux-headers-generic$stack # need to build kernel modules
+    if test "$x11" = true; then
+      extra_install="$extra_install xserver-xorg-core$stack" # required before virtualbox x11 install
+    fi
+  fi
+  apt-get install -y linux-image-virtual$stack $extra_install #zerofree
 
   if test "$kupgrade" = false -o "$hwe" = true; then
-     kernel_purge="linux-headers-generic linux-image-generic"
-  fi 
-  if test "$kupgrade" = false -a "$hwe" = true; then
-     kernel_purge="$kernel_purge linux-headers-generic$stack linux-image-generic$stack"
+    kernel_purge="linux-headers-generic linux-image-virtual"
   fi
-
+  if test "$kupgrade" = false -a "$hwe" = true; then
+    kernel_purge="$kernel_purge linux-image-virtual$stack"
+  fi
   # remove original kernel
-  apt-get purge -y plymouth-theme-ubuntu-text \
-   linux-image-4.4.0-62-generic linux-image-extra-4.4.0-62-generic \
-   linux-headers-4.4.0-62 linux-headers-4.4.0-62-generic $kernel_purge
-
-  test "$x11" = true && apt-get install -y xserver-xorg-core$stack # required for virtualbox x11 install
+  original=
+  if test "$release" = "xenial"; then
+    original=4.4.0-62
+  elif test "$release" = "yakkety"; then
+    original=4.8.0-22
+  elif test "$release" = "zesty"; then
+    original=4.10.0-13
+  fi
+  apt-get purge -y $kernel_purge linux-image-$original-generic linux-headers-$original
 fi
 
-echo Reboot with the new kernel
-shutdown -r now
-sleep 5
 sync
-reboot -f # in case it hangs
+echo Reboot with the new kernel
+service ssh stop # prevent a new login by packer
+ifdown eth0
+shutdown -r now
 exit 0

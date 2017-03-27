@@ -2,6 +2,7 @@
 
 export DEBIAN_FRONTEND=noninteractive
 . config.vm
+uname -a
 # The netboot installs the VirtualBox support (old) so we have to remove it
 rmmod vboxvideo vboxguest || true
 if test "$offline" = false; then
@@ -13,7 +14,7 @@ fi
 echo Installing the VirtualBox guest additions
 VBOX_VERSION=$(cat .vbox_version)
 VBOX_ISO=VBoxGuestAdditions.iso
-mount -o loop $VBOX_ISO /mnt
+mount -r -o loop $VBOX_ISO /mnt
 yes|sh /mnt/VBoxLinuxAdditions.run
 umount /mnt
 

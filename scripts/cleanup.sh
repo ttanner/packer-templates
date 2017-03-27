@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 apt-get clean
-rm -f /tmp/aptcache.tar
+rm -rf /tmp/*
 
 # Removing leftover leases and persistent rules
 echo "cleaning up dhcp leases"
