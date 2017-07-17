@@ -65,7 +65,7 @@ if test "$mate" = true; then
   test "$release" = "xenial" && extra_pkgs="$extra_pkgs mate-gnome-main-menu-applet"
 fi
 if test "$llvm" = true; then
-  echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-4.0 main" > /etc/apt/sources.list.d/llvm.list
+  echo "deb http://apt.llvm.org/$release/ llvm-toolchain-$release-4.0 main" > /etc/apt/sources.list.d/llvm.list
   wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
   needupdate=true
   extra_pkgs="$extra_pkgs clang-4.0"
@@ -77,10 +77,10 @@ if test "$salt" = true; then
   extra_pkgs="$extra_pkgs salt-minion salt-ssh"
 fi
 if test "$qt" = true; then
-  echo "deb http://ppa.launchpad.net/beineri/opt-qt58-xenial/ubuntu xenial main" > /etc/apt/sources.list.d/qt58.list
+  echo "deb http://ppa.launchpad.net/beineri/opt-qt591-xenial/ubuntu xenial main" > /etc/apt/sources.list.d/qt.list
   apt-key adv --recv-keys --keyserver keyserver.ubuntu.com C65D51784EDC19A871DBDBB710C56D0DE9977759
   #ppas="$ppas ppa:beineri/opt-qt58-xenial"
-  extra_pkgs="$extra_pkgs qt58base"
+  extra_pkgs="$extra_pkgs qt59base"
 fi
 test -n "$ppas" && apt-get install -y software-properties-common # for add-apt-repository
 for ppa in $ppas; do

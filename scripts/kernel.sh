@@ -106,7 +106,7 @@ if test "$offline" = false; then
   elif test "$release" = "yakkety"; then
     original=4.8.0-22
   elif test "$release" = "zesty"; then
-    original=4.10.0-13
+    original=4.10.0-19
   fi
   apt-get purge -y $kernel_purge linux-image-$original-generic linux-headers-$original
 fi
