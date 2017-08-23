@@ -35,30 +35,33 @@ mv /tmp/aptcache/* /var/cache/apt/archives
 
 release=`lsb_release -cs`
 
+set -x
 # select mirror
-if test "$mirror" = auto; then
-  mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
-  if test -z "$http_proxy" -a "$offline" = false; then
-    # get current netselect - version/link may be broken
-    nsversion=0.3.ds1-28+b1
-    netselect=/var/cache/apt/archives/netselect_${nsversion}_amd64.deb
-    if test ! -f $netselect; then
-      wget -O $netselect http://http.us.debian.org/debian/pool/main/n/netselect/netselect_${nsversion}_amd64.deb
-      # netselect-apt_0.3.ds1-28_all.deb
-    fi
-    if test -f $netselect; then
-      dpkg -i $netselect
-      mirrors=`wget --no-check-certificate -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
-      fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
-      test -n "$fmirror" && mirror=$fmirror
-      dpkg --purge netselect
-    else
-      echo "could not download netselect. falling back to mirror list"
-    fi
+if test "$mirror" = best -a -z "$http_proxy" -a "$offline" = false; then
+  # get current netselect - version/link may be broken
+  nsversion=0.3.ds1-28+b1
+  netselect=/var/cache/apt/archives/netselect_${nsversion}_amd64.deb
+  if test ! -f $netselect; then
+    wget -O $netselect http://http.us.debian.org/debian/pool/main/n/netselect/netselect_${nsversion}_amd64.deb
+    # netselect-apt_0.3.ds1-28_all.deb
+  fi
+  if test -f $netselect; then
+    dpkg -i $netselect
+    mirrors=`wget --no-check-certificate -q -O- https://launchpad.net/ubuntu/+archivemirrors | grep -P -B8 "statusUP|statusSIX" |  grep -o -P "(f|ht)tp.*\"" | tr '"\n' '  '`
+    fmirror=`netselect -s1 -t20 $mirrors 2>/dev/null | awk '{print $2;}'`
+    test -n "$fmirror" && mirror=$fmirror
+    dpkg --purge netselect
+  else
+    echo "could not download netselect. falling back to mirror list"
+    mirror=auto
   fi
 fi
+if test "$mirror" = auto; then
+  mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
+fi
 echo "using mirror $mirror"
-cat > /etc/apt/sources.list <<EOF
+if ! test "$mirror" = default; then
+  cat > /etc/apt/sources.list <<EOF
 deb $mirror $release main restricted universe multiverse
 # deb-src $mirror $release main restricted multiverse
 
@@ -74,8 +77,8 @@ deb $mirror $release-backports main restricted universe multiverse
 # deb http://archive.canonical.com/ubuntu $release partner
 # deb-src http://archive.canonical.com/ubuntu $release partner
 EOF
-
-test "$release" != "xenial" && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list
+  test "$release" != "xenial" && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list
+fi
 
 if test "$offline" = false; then
   # update apt sources
@@ -102,7 +105,7 @@ if test "$offline" = false; then
   # remove original kernel
   original=
   if test "$release" = "xenial"; then
-    original=4.4.0-62
+    original=4.4.0-87
   elif test "$release" = "yakkety"; then
     original=4.8.0-22
   elif test "$release" = "zesty"; then

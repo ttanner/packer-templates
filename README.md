@@ -13,7 +13,8 @@ example:
 The most relevant variables (defaults in brackets) are:
 
 *   `mirror` (auto):
-    The mirror URL. `auto` detects the fastest nearby-mirror.
+    The mirror URL. `best` detects the fastest nearby-mirror, `auto` uses the Ubunutu dynamic mirror lookup,
+      and `default` use the country dependent mirror.
 *   language settings:
     - `country` (US)
     - `keyboard` (us)
@@ -53,7 +54,7 @@ for the next installation. It will be empty, if you create a file `aptcache/nodo
 
 The disk is called /dev/sda, the first network interface eth0, on Virtualbox the host-only interface eth1.
 
-Current disk usage and compressed image size:
+Current disk usage and compressed image size (Ubuntu 16.04.2):
 minimal (HWE): 472MB/173MB
 with kupgrade,x11,plymouth: 803MB/272MB
 with kupgrade,x11,plymouth,mate: 1.6GB/594MB
