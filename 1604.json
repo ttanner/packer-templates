@@ -39,7 +39,7 @@
     "build_memory": "1024",
     "cpu_cores": "1",
     "memory": "512",
-    "ssh_disable_agent": "false",
+    "ssh_disable_agent_forwarding": "false",
     "ssh_file_transfer_method": "scp",
     "ssh_handshake_attempts": "10",
     "ssh_host_port_max": "4444",
@@ -48,7 +48,7 @@
     "ssh_password": "vagrant",
     "ssh_port": "22",
     "ssh_pty": "true",
-    "ssh_timeout": "20m",
+    "ssh_timeout": "10m",
     "vagrantfile_template": "1604.vagrant",
     "version": "0.0.0",
     "vm_name": "mini1604",
@@ -113,6 +113,7 @@
       "hard_drive_interface": "sata",
       "hard_drive_nonrotational": true,
       "hard_drive_discard": true,
+      "sata_port_count": 2,
       "headless": "{{user `headless`}}",
       "http_directory": "{{user `http_directory`}}",
       "http_port_max": "{{user `http_port_max`}}",
@@ -130,7 +131,7 @@
       "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -E -S poweroff",
       "shutdown_timeout": "{{user `shutdown_timeout`}}",
       "post_shutdown_delay": "20s",
-      "ssh_disable_agent": "{{user `ssh_disable_agent`}}",
+      "ssh_disable_agent_forwarding": "{{user `ssh_disable_agent_forwarding`}}",
       "ssh_file_transfer_method": "{{user `ssh_file_transfer_method`}}",
       "ssh_handshake_attempts": "{{user `ssh_handshake_attempts`}}",
       "ssh_host_port_max": "{{user `ssh_host_port_max`}}",
@@ -193,6 +194,7 @@
       "boot_wait": "{{user `boot_wait`}}",
       "communicator": "{{user `communicator`}}",
       "disk_size": "{{user `disk_size`}}",
+      "disk_additional_size": [],
       "headless": "{{user `headless`}}",
       "http_directory": "{{user `http_directory`}}",
       "http_port_max": "{{user `http_port_max`}}",
@@ -207,7 +209,7 @@
       "output_directory": "{{user `output_directory`}}",
       "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -E -S poweroff",
       "shutdown_timeout": "{{user `shutdown_timeout`}}",
-      "ssh_disable_agent": "{{user `ssh_disable_agent`}}",
+      "ssh_disable_agent_forwarding": "{{user `ssh_disable_agent_forwarding`}}",
       "ssh_file_transfer_method": "{{user `ssh_file_transfer_method`}}",
       "ssh_handshake_attempts": "{{user `ssh_handshake_attempts`}}",
       "ssh_password": "{{user `ssh_password`}}",
@@ -293,7 +295,7 @@
       "shutdown_command": "echo '{{user `ssh_password`}}' | sudo -E -S poweroff",
       "shutdown_timeout": "{{user `shutdown_timeout`}}",
       "skip_compaction": true,
-      "ssh_disable_agent": "{{user `ssh_disable_agent`}}",
+      "ssh_disable_agent_forwarding": "{{user `ssh_disable_agent_forwarding`}}",
       "ssh_file_transfer_method": "{{user `ssh_file_transfer_method`}}",
       "ssh_handshake_attempts": "{{user `ssh_handshake_attempts`}}",
       "ssh_host_port_max": "{{user `ssh_host_port_max`}}",
@@ -321,7 +323,7 @@
       },
       "secret_key": "{{user `aws_secret_key`}}",
       "source_ami": "{{user `aws_source_ami`}}",
-      "ssh_disable_agent": "{{user `ssh_disable_agent`}}",
+      "ssh_disable_agent_forwarding": "{{user `ssh_disable_agent_forwarding`}}",
       "ssh_handshake_attempts": "{{user `ssh_handshake_attempts`}}",
       "ssh_password": "{{user `ssh_password`}}",
       "ssh_port": "{{user `ssh_port`}}",
@@ -333,7 +335,7 @@
     }
   ],
   "description": "{{user `description`}}",
-  "min_packer_version": "0.10.1",
+  "min_packer_version": "1.1.0",
   "post-processors": [
     {
       "compression_level": 9,
@@ -365,6 +367,7 @@
         "echo ftp_proxy={{user `ftp_proxy`}} >> config.vm",
         "echo no_proxy={{user `no_proxy`}} >> config.vm",
         "echo mirror={{user `mirror`}} >> config.vm",
+        "echo country={{user `country`}} >> config.vm",
         "echo kupgrade={{user `with_kupgrade`}} >> config.vm",
         "echo hwe={{user `with_hwe`}} >> config.vm",
         "echo i386={{user `with_i386`}} >> config.vm",
@@ -391,9 +394,14 @@
       "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
       "scripts": [
         "scripts/proxy.sh",
-        "scripts/vagrant.sh",
-        "scripts/kernel.sh"
+        "scripts/vagrant.sh"
       ],
+      "type": "shell"
+    },
+    {
+      "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",
+      "script": "scripts/kernel.sh",
+      "expect_disconnect": true,
       "type": "shell"
     },
     {

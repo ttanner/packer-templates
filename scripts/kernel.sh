@@ -35,7 +35,6 @@ mv /tmp/aptcache/* /var/cache/apt/archives
 
 release=`lsb_release -cs`
 
-set -x
 # select mirror
 if test "$mirror" = best -a -z "$http_proxy" -a "$offline" = false; then
   # get current netselect - version/link may be broken
@@ -57,11 +56,16 @@ if test "$mirror" = best -a -z "$http_proxy" -a "$offline" = false; then
   fi
 fi
 if test "$mirror" = auto; then
-  mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
+  if test "$release" = xenial; then
+    mirror="mirror://mirrors.ubuntu.com/mirrors.txt"
+  else
+    # mirror is broken >xenial
+    mirror=default
+  fi
 fi
+test "$mirror" = default && mirror="http://${country,,}.archive.ubuntu.com/ubuntu"
 echo "using mirror $mirror"
-if ! test "$mirror" = default; then
-  cat > /etc/apt/sources.list <<EOF
+cat > /etc/apt/sources.list <<EOF
 deb $mirror $release main restricted universe multiverse
 # deb-src $mirror $release main restricted multiverse
 
@@ -77,8 +81,7 @@ deb $mirror $release-backports main restricted universe multiverse
 # deb http://archive.canonical.com/ubuntu $release partner
 # deb-src http://archive.canonical.com/ubuntu $release partner
 EOF
-  test "$release" != "xenial" && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list
-fi
+test "$release" != xenial && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list.d/xenial.list
 
 if test "$offline" = false; then
   # update apt sources
@@ -116,7 +119,5 @@ fi
 
 sync
 echo Reboot with the new kernel
-service ssh stop # prevent a new login by packer
-ifdown eth0
 shutdown -r now
-exit 0
+exit 0 # return to packer

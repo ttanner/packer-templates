@@ -13,7 +13,7 @@ if test "$PACKER_BUILDER_TYPE" = virtualbox-iso; then
 else
   # Zero out the free space to save space in the final image:
   echo "Zeroing device to make space..."
-  dd if=/dev/zero of=/EMPTY bs=4M
+  dd if=/dev/zero of=/EMPTY bs=4M || true
   rm -f /EMPTY
   sync
   # mount -o ro,remount /
