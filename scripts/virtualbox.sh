@@ -1,12 +1,15 @@
 #!/bin/sh -e
 
 export DEBIAN_FRONTEND=noninteractive
-. config.vm
+source config.vm
+release=`lsb_release -cs`
 uname -a
 # The netboot installs the VirtualBox support (old) so we have to remove it
 rmmod vboxvideo vboxguest || true
 if test "$offline" = false; then
   apt-get install -y dkms
+elif test "$release" = artful; then
+  dpkg -i /var/cache/apt/archives/dkms_2.3-3ubuntu3_all.deb
 else
   dpkg -i /var/cache/apt/archives/dkms_2.2.0.3-2ubuntu11.3_all.deb
 fi

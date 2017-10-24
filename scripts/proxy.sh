@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-. config.vm
+source config.vm
 test -n "$http_proxy" && echo "Acquire::http::Proxy \"$http_proxy\";" >> /etc/apt/apt.conf.d/30proxy
 test -n "$ftp_proxy" && echo "Acquire::ftp::Proxy \"$ftp_proxy\";" >> /etc/apt/apt.conf.d/30proxy
 

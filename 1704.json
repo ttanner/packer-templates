@@ -10,10 +10,10 @@
     "communicator": "ssh",
     "description": "Virtual machine for 64-bit x86 Ubuntu 17.04",
     "domain": "",
-    "http_directory": ".",
+    "http_directory": "http",
     "http_port_max": "9000",
     "http_port_min": "8000",
-    "preseed_file": "http/preseed.cfg",
+    "preseed_file": "preseed.cfg",
     "iso_checksum": "ca5d9a8438e2434b9a3ac2be67b5c5fa2c1f8e3e40b954519462935195464034",
     "iso_checksum_type": "sha256",
     "iso_file": "ubuntu-17.04-server-amd64.iso",
@@ -55,6 +55,7 @@
     "vnc_port_max": "6000",
     "vnc_port_min": "5900",
     "vbox_hostif": "vboxnet0",
+    "save_aptcache": "false",
     "http_proxy": "{{env `http_proxy`}}",
     "https_proxy": "{{env `https_proxy`}}",
     "ftp_proxy": "{{env `ftp_proxy`}}",
@@ -361,6 +362,7 @@
     {
       "inline": [
         "echo offline={{user `offline`}} >> config.vm",
+        "echo save_aptcache={{user `save_aptcache`}} >> config.vm",
         "echo http_proxy={{user `http_proxy`}} >> config.vm",
         "echo https_proxy={{user `https_proxy`}} >> config.vm",
         "echo ftp_proxy={{user `ftp_proxy`}} >> config.vm",
@@ -382,12 +384,6 @@
         "echo \"purge_pkgs='{{user `without_pkgs`}}'\" >> config.vm"
         ],
       "type": "shell"
-    },
-    {
-      "type": "file",
-      "source": "aptcache",
-      "destination": "/tmp",
-      "direction": "upload"
     },
     {
       "execute_command": "echo '{{user `ssh_password`}}' | {{.Vars}} sudo -E -S bash -e '{{.Path}}'",

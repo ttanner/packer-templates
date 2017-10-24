@@ -1,7 +1,8 @@
-#!/bin/sh
+#!/bin/sh -e
 
 export DEBIAN_FRONTEND=noninteractive
-. config.vm
+source config.vm
+release=`lsb_release -cs`
 
 test "$i386" = true || dpkg --remove-architecture i386
 
@@ -29,11 +30,6 @@ echo "UseDNS no" >> /etc/ssh/sshd_config
 #  # add TRIM support for / in virtualbox - CAUSES DISK ERRORS - use fstrim
 #  sed -i "s/remount-ro/remount-ro,discard/" /etc/fstab
 #fi
-
-# move cached packages to destination
-mv /tmp/aptcache/* /var/cache/apt/archives
-
-release=`lsb_release -cs`
 
 # select mirror
 if test "$mirror" = best -a -z "$http_proxy" -a "$offline" = false; then
@@ -83,6 +79,12 @@ deb $mirror $release-backports main restricted universe multiverse
 EOF
 test "$release" != xenial && echo "deb $mirror xenial main restricted universe multiverse" >> /etc/apt/sources.list.d/xenial.list
 
+data_url=http://$PACKER_HTTP_ADDR
+if wget --spider $data_url/aptcache.tar 2>/dev/null; then
+  echo downloading apt cache
+  curl $data_url/aptcache.tar | tar x -C/var/cache/apt/archives/
+fi
+
 if test "$offline" = false; then
   # update apt sources
   apt-get update
@@ -107,17 +109,33 @@ if test "$offline" = false; then
   fi
   # remove original kernel
   original=
-  if test "$release" = "xenial"; then
+  if test "$release" = xenial; then
     original=4.4.0-87
-  elif test "$release" = "yakkety"; then
+  elif test "$release" = yakkety; then
     original=4.8.0-22
-  elif test "$release" = "zesty"; then
+  elif test "$release" = zesty; then
     original=4.10.0-19
+  #elif test "$release" = artful; then
+  #  original=4.13.0-16
   fi
-  apt-get purge -y $kernel_purge linux-image-$original-generic linux-headers-$original
+  if test -n "$original"; then
+    kernel_purge="$kernel_purge linux-image-$original-generic linux-headers-$original"
+  fi
+  apt-get purge -y $kernel_purge
+fi
+
+if test "$release" = artful; then
+  echo removing swapfile
+  swapoff -a
+  sed -i '/\/swapfile/d' /etc/fstab
+  rm /swapfile
 fi
 
 sync
 echo Reboot with the new kernel
+if test "$release" = xenial; then
+  service ssh stop
+  ifdown eth0
+fi
 shutdown -r now
 exit 0 # return to packer

@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-. /etc/profile.d/proxy.sh
+source /etc/profile.d/proxy.sh
 # Set up sudo
 echo "%vagrant ALL=NOPASSWD:ALL" > /etc/sudoers.d/vagrant
 chmod 0440 /etc/sudoers.d/vagrant
@@ -12,11 +12,12 @@ usermod -a -G sudo $SUDO_USER
 mkdir ~/.ssh
 chmod 700 ~/.ssh
 cd ~/.ssh
-certfile=/tmp/aptcache/vagrant.pub
-if test ! -f $certfile; then
-  wget --no-check-certificate -O $certfile https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub
+url=https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub
+data_url=http://$PACKER_HTTP_ADDR
+if wget --spider $data_url/authorized_keys 2>/dev/null; then
+  url=$data_url/authorized_keys
 fi
-cp $certfile authorized_keys
+wget --no-check-certificate -Oauthorized_keys $url
 chmod 600 ~/.ssh/authorized_keys
 chown -R $SUDO_USER ~/.ssh
 exit 0

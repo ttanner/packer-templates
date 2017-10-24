@@ -36,31 +36,37 @@ The most relevant variables (defaults in brackets) are:
 *   proxy settings:
     `http_proxy`, `https_proxy`, `ftp_proxy` and `no_proxy` are copied from enviroment.
 *   `offline` (false): pure offline installation - should not rely on downloads but only on cache
+*   `save_aptcache` (false): whether to download the aptcache to aptcache.tar on the host. move it to http/ for reuse.
 *   `with_kupgrade` (false):
     whether to keep generic kernel packages, headers, and VM guest sources for for automatic kernel upgrades.
 *   `with_hwe' (true): whether to use the HWE stack for kernel and X11
 *   `with_x11` (false): whether to install the core X11 server with VM guest support. conflicts with `offline`.
 *   `with_i386` (false): whether to keep i386 packages
-*   `with_qt` (false): whether to install Qt 5.7.1 PPA
-*   `with_llvm` (false): whether to install LLVM 4.0 PPA
+*   `with_qt` (false): whether to install Qt 5.9.x PPA
+*   `with_llvm` (false): whether to install LLVM 5.0 PPA
 *   `with_salt` (false): whether to install salt stack PPA
 *   `with_ppas` (""): PPAs to add (separated by spaces)
 *   `with_pkgs` (""): additional packages to install
 *   `without_pkgs` (""): packages to purge after installation
 
-The template uses a required `aptcache` folder for downloaded deb packages for faster or offline installations.
-After installation the apt cache is downloaded to a file `aptcache.tar`, which you may extract to the cache folder
-for the next installation. It will be empty, if you create a file `aptcache/nodownload`.
+The template can use an `aptcache.tar` archive for downloaded deb packages for faster or offline
+installations.
+If `save_aptcache`, the apt cache is downloaded to a file `aptcache.tar` after the installation,
+which you should move to the http folder for the next installation.
 
 The disk is called /dev/sda, the first network interface eth0, on Virtualbox the host-only interface eth1.
 
-Current disk usage and compressed image size (Ubuntu 16.04.2):
-minimal (HWE): 472MB/173MB
+Current disk usage and compressed image size (Ubuntu 16.04.3):
+minimal (HWE): 427MB/173MB
 with kupgrade,x11,plymouth: 803MB/272MB
 with kupgrade,x11,plymouth,mate: 1.6GB/594MB
 
 Zesty
-minimal: 701MB/180MB
+minimal: 616MB/180MB
+with kupgrade,x11,plymouth,mate: GB/MB
+
+Artful
+minimal: 513MB/197MB
 
 If want to use TRIM on Virtualbox, you need to re-enable it after importing the OVF:
 in "Manager for virtual media" copy the .vmdk image of your VM to a dynamic .vdi, replace it in the VM settings as the disk

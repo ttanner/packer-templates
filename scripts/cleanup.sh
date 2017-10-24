@@ -1,7 +1,8 @@
 #!/bin/sh -e
 
 apt-get clean
-rm -rf /tmp/*
+
+rm -rf /tmp/* /var/lib/apt/lists/*.* config.vm custom.sh
 
 # Removing leftover leases and persistent rules
 echo "cleaning up dhcp leases"
